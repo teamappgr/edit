@@ -1,0 +1,10 @@
+{
+    "appId": "com.example.app",
+    "appName": "MyApp",
+    "webDir": "build",  
+    "server": {
+      "url": "http://192.168.1.4:8100",
+      "cleartext": true
+    }
+  }
+  
