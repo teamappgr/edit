@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import {
   IonContent,
-  IonHeader,
-  IonPage,
-  IonTitle,
-  IonToolbar,
+  IonSpinner,
+  IonToast,
   IonCard,
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
-  IonSpinner,
-  IonToast,
   IonButton,
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
 } from '@ionic/react';
 import { isPlatform } from '@ionic/react';
-
-import './Home.css'; // Optional: Add custom styles if needed
+import Layout from './tabs'; // Import the Layout component
 
 interface Ad {
   id: string;
@@ -24,7 +23,7 @@ interface Ad {
   created_at: string;
   min: number;
   max: number;
-  date: string;
+  date: string; // Should be in "YYYY-MM-DD" format
   time: string;
   verified: boolean;
   available: boolean;
@@ -32,23 +31,16 @@ interface Ad {
 }
 
 const Main: React.FC = () => {
-  const [platform, setPlatformState] = useState<string>('ios'); // Set to 'ios' by default
-  const [ads, setAds] = useState<Ad[]>([]); // State for ads
-  const [loading, setLoading] = useState<boolean>(true); // Loading state
-  const [error, setError] = useState<string | null>(null); // Error state
+  const [platform, setPlatformState] = useState<string>('ios');
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  // Fetch ads from the server
   useEffect(() => {
-    if (isPlatform('ios')) {
-      setPlatformState('ios');
-    } else if (isPlatform('android')) {
-      setPlatformState('android');
-    } else {
-      setPlatformState('web');
-    }
     const fetchAds = async () => {
       try {
-        const response = await fetch('http://localhost:5000/ads'); // Update with your backend URL
+        const response = await fetch('https://edit-9und.onrender.com/ads');
         if (!response.ok) {
           throw new Error('Failed to fetch ads');
         }
@@ -60,37 +52,60 @@ const Main: React.FC = () => {
         setLoading(false);
       }
     };
-
+  
     fetchAds();
-  }, []);
+  }, []); // No dependencies, runs once
+  
 
-  // Verify an ad
+  const filteredAndSortedAds = ads
+    .filter((ad) => {
+      const today = new Date();
+      const adDate = new Date(ad.date);
+      return adDate >= today;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+  const currentAd = filteredAndSortedAds[currentIndex];
+
+  const showNextAd = () => {
+    if (currentIndex < filteredAndSortedAds.length - 1) {
+      setCurrentIndex((prevIndex) => prevIndex + 1);
+    }
+  };
+
+  const showPreviousAd = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prevIndex) => prevIndex - 1);
+    }
+  };
+
   const verifyAd = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/ads/${id}/verify`, {
+      const response = await fetch(`https://edit-9und.onrender.com/ads/${id}/verify`, {
         method: 'PUT',
       });
       if (!response.ok) {
         throw new Error('Failed to verify ad');
       }
-      const updatedAd = await response.json();
-      setAds(ads.map(ad => (ad.id === id ? { ...ad, verified: true } : ad)));
+      setAds(ads.map((ad) => (ad.id === id ? { ...ad, verified: true } : ad)));
     } catch (error: any) {
       setError(error.message || 'An error occurred');
     }
   };
 
-  // Reject an ad
   const rejectAd = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/ads/${id}/reject`, {
+      const response = await fetch(`https://edit-9und.onrender.com/ads/${id}/reject`, {
         method: 'PUT',
       });
       if (!response.ok) {
         throw new Error('Failed to reject ad');
       }
-      const updatedAd = await response.json();
-      setAds(ads.map(ad => (ad.id === id ? { ...ad, verified: false } : ad)));
+      setAds(ads.map((ad) => (ad.id === id ? { ...ad, verified: false } : ad)));
     } catch (error: any) {
       setError(error.message || 'An error occurred');
     }
@@ -98,9 +113,9 @@ const Main: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
+            <IonHeader>
         <IonToolbar>
-          <IonTitle>Ads</IonTitle>
+          <IonTitle>Events</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
@@ -116,34 +131,66 @@ const Main: React.FC = () => {
             duration={3000}
             onDidDismiss={() => setError(null)}
           />
+        ) : filteredAndSortedAds.length === 0 ? (
+          <p>No upcoming ads available.</p>
         ) : (
-          ads.map((ad) => (
-            <IonCard key={ad.id}>
+          <>
+            <IonCard key={currentAd.id}>
               <IonCardHeader>
-                <IonCardTitle>{ad.title}</IonCardTitle>
+                <IonCardTitle>{currentAd.title}</IonCardTitle>
               </IonCardHeader>
               <IonCardContent>
-                <p><strong>Description:</strong> {ad.description}</p>
-                <p><strong>Min:</strong> {ad.min}</p>
-                <p><strong>Max:</strong> {ad.max}</p>
-                <p><strong>Date:</strong> {ad.date}</p>
-                <p><strong>Time:</strong> {ad.time}</p>
-                <p><strong>Verified:</strong> {ad.verified ? 'Yes' : 'No'}</p>
-                <p><strong>Available:</strong> {ad.available ? 'Yes' : 'No'}</p>
-                <p><strong>Info:</strong> {ad.info}</p>
-                <p><small>Created at: {new Date(ad.created_at).toLocaleString()}</small></p>
-                <IonButton color="success" onClick={() => verifyAd(ad.id)} disabled={ad.verified}>
+                <p>
+                  <strong>Description:</strong> {currentAd.description}
+                </p>
+                <p>
+                  <strong>Min:</strong> {currentAd.min}
+                </p>
+                <p>
+                  <strong>Max:</strong> {currentAd.max}
+                </p>
+                <p>
+                  <strong>Date:</strong> {currentAd.date}
+                </p>
+                <p>
+                  <strong>Time:</strong> {currentAd.time}
+                </p>
+                <p>
+                  <strong>Verified:</strong> {currentAd.verified ? 'Yes' : 'No'}
+                </p>
+                <p>
+                  <strong>Available:</strong> {currentAd.available ? 'Yes' : 'No'}
+                </p>
+                <p>
+                  <strong>Info:</strong> {currentAd.info}
+                </p>
+                <p>
+                  <small>Created at: {new Date(currentAd.created_at).toLocaleString()}</small>
+                </p>
+                <IonButton color="success" onClick={() => verifyAd(currentAd.id)}>
                   Verify
                 </IonButton>
-                <IonButton color="danger" onClick={() => rejectAd(ad.id)} disabled={!ad.verified}>
+                <IonButton color="danger" onClick={() => rejectAd(currentAd.id)}>
                   Reject
                 </IonButton>
               </IonCardContent>
             </IonCard>
-          ))
+
+            <div className="navigation-buttons">
+              <IonButton onClick={showPreviousAd} disabled={currentIndex === 0}>
+                Previous
+              </IonButton>
+              <IonButton
+                onClick={showNextAd}
+                disabled={currentIndex === filteredAndSortedAds.length - 1}
+              >
+                Next
+              </IonButton>
+            </div>
+          </>
         )}
       </IonContent>
-    </IonPage>
+      </IonPage>
   );
 };
 
