@@ -97,6 +97,58 @@ app.put('/ads/:id/verify', async (req, res) => {
       res.status(500).json({ message: 'Error rejecting ad' });
     }
   });
+  app.get('/users', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, first_name, last_name, email, phone, instagram_account, image_url, verified, university, gender FROM users WHERE verified IS FALSE',
+            []
+          );
+                res.status(200).json(result.rows);
+    } catch (error) {
+      console.error('Error fetching ads:', error);
+      res.status(500).json({ message: 'Error fetching ads' });
+    }
+  });
+  app.put('/users/:id/verify', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+      const result = await pool.query(
+        'UPDATE users SET verified = TRUE WHERE id = $1 RETURNING *', [id]
+      );
+  
+  
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      return res.status(200).json({ message: 'User verified successfully', user: result.rows[0] });
+    } catch (error) {
+      console.error('Error verifying user:', error);
+      res.status(500).json({ message: 'Error verifying user' });
+    }
+  });
+  
+  // Route to reject user
+  app.put('/users/:id/reject', async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+      const result = await pool.query(
+        'UPDATE users SET verified = false WHERE id = $1 RETURNING *', [id]
+      );
+  
+  
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      return res.status(200).json({ message: 'User rejected successfully', user: result.rows[0] });
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      res.status(500).json({ message: 'Error rejecting user' });
+    }
+  });
   
 // Start the server
 app.listen(PORT, () => {

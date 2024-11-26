@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonHeader, IonToolbar, IonTitle, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonSpinner, IonImg } from '@ionic/react';
+import { IonPage, IonContent, IonHeader, IonToolbar, IonTitle, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonSpinner, IonButton, IonImg, IonToast } from '@ionic/react';
 
 const UsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
+  const [currentUserIndex, setCurrentUserIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch users from the backend
   useEffect(() => {
-    // Fetch your users data
     const fetchUsers = async () => {
       try {
-        const response = await fetch('https://your-backend-url.com/users');
+        const response = await fetch('http://localhost:5000/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
         const data = await response.json();
         setUsers(data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
+      } catch (error: any) {
+        setError(error.message || 'An error occurred');
       } finally {
         setLoading(false);
       }
@@ -21,6 +26,72 @@ const UsersPage: React.FC = () => {
 
     fetchUsers();
   }, []);
+
+  // Show the current user
+  const currentUser = users[currentUserIndex];
+
+  // Handle Next and Previous buttons
+  const showNextUser = () => {
+    if (currentUserIndex < users.length - 1) {
+      setCurrentUserIndex(prevIndex => prevIndex + 1);
+    }
+  };
+
+  const showPreviousUser = () => {
+    if (currentUserIndex > 0) {
+      setCurrentUserIndex(prevIndex => prevIndex - 1);
+    }
+  };
+
+  // Handle Verify action
+  const verifyUser = async (id: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/users/${id}/verify`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to verify user');
+      }
+
+      // Update the user list by setting the user as verified
+      const updatedUser = await response.json();
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === updatedUser.id ? { ...user, verified: true } : user
+        )
+      );
+
+      setError('User verified successfully');
+    } catch (error: any) {
+      setError(error.message || 'An error occurred while verifying the user');
+    }
+  };
+
+  // Handle Reject action
+  const rejectUser = async (id: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/users/${id}/reject`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject user');
+      }
+
+      // Update the user list by setting the user as rejected
+      const updatedUser = await response.json();
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === updatedUser.id ? { ...user, verified: false } : user
+        )
+      );
+
+      setError('User rejected successfully');
+    } catch (error: any) {
+      setError(error.message || 'An error occurred while rejecting the user');
+    }
+  };
 
   return (
     <IonPage>
@@ -32,28 +103,58 @@ const UsersPage: React.FC = () => {
       <IonContent>
         {loading ? (
           <IonSpinner name="crescent" />
+        ) : error ? (
+          <IonToast
+            isOpen={!!error}
+            message={error}
+            duration={3000}
+            onDidDismiss={() => setError(null)}
+          />
+        ) : users.length === 0 ? (
+          <p>No users available.</p>
         ) : (
-          users.map((user) => (
-            <IonCard key={user.id}>
+          <>
+            <IonCard key={currentUser.id}>
               <IonCardHeader>
-                <IonCardTitle>{user.first_name} {user.last_name}</IonCardTitle>
+                <IonCardTitle>{currentUser.first_name} {currentUser.last_name}</IonCardTitle>
               </IonCardHeader>
               <IonCardContent>
                 {/* Display Image */}
-                {user.imageurl && (
-                  <IonImg src={user.imageurl} alt={`${user.first_name} ${user.last_name}`} style={{ width: '100%', height: 'auto', borderRadius: '8px', marginBottom: '10px' }} />
+                {currentUser.image_url && (
+                  <IonImg
+                    src={currentUser.image_url}
+                    alt={`${currentUser.first_name} ${currentUser.last_name}`}
+                    style={{ width: '100%', height: 'auto', borderRadius: '8px', marginBottom: '10px' }}
+                  />
                 )}
-                
+
                 {/* Display User Info */}
-                <p><strong>Email:</strong> {user.email}</p>
-                <p><strong>Phone:</strong> {user.phone}</p>
-                <p><strong>Instagram:</strong> {user.instagram_account}</p>
-                <p><strong>University:</strong> {user.university}</p>
-                <p><strong>Gender:</strong> {user.gender}</p>
-                <p><strong>Verified:</strong> {user.verified ? 'Yes' : 'No'}</p>
+                <p><strong>Email:</strong> {currentUser.email}</p>
+                <p><strong>Phone:</strong> {currentUser.phone}</p>
+                <p><strong>Instagram:</strong> {currentUser.instagram_account}</p>
+                <p><strong>University:</strong> {currentUser.university}</p>
+                <p><strong>Gender:</strong> {currentUser.gender}</p>
+                <p><strong>Verified:</strong> {currentUser.verified ? 'Yes' : 'No'}</p>
+                
+                {/* Verify and Reject buttons */}
+                <IonButton color="success" onClick={() => verifyUser(currentUser.id)}>
+                  Verify
+                </IonButton>
+                <IonButton color="danger" onClick={() => rejectUser(currentUser.id)}>
+                  Reject
+                </IonButton>
               </IonCardContent>
             </IonCard>
-          ))
+
+            <div className="navigation-buttons">
+              <IonButton onClick={showPreviousUser} disabled={currentUserIndex === 0}>
+                Previous
+              </IonButton>
+              <IonButton onClick={showNextUser} disabled={currentUserIndex === users.length - 1}>
+                Next
+              </IonButton>
+            </div>
+          </>
         )}
       </IonContent>
     </IonPage>
