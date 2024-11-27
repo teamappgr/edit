@@ -100,7 +100,7 @@ app.put('/ads/:id/verify', async (req, res) => {
   app.get('/users', async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, first_name, last_name, email, phone, instagram_account, image_url, verified, university, gender FROM users WHERE verified IS FALSE',
+            'SELECT id, first_name, last_name, email, phone, instagram_account, image_url, verified, university, gender FROM users WHERE verified IS NULL',
             []
           );
                 res.status(200).json(result.rows);

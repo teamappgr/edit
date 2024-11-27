@@ -46,7 +46,7 @@ const UsersPage: React.FC = () => {
   // Handle Verify action
   const verifyUser = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/users/${id}/verify`, {
+      const response = await fetch(`https://edit-9und.onrender.com/${id}/verify`, {
         method: 'PUT',
       });
 
@@ -71,7 +71,7 @@ const UsersPage: React.FC = () => {
   // Handle Reject action
   const rejectUser = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/users/${id}/reject`, {
+      const response = await fetch(`https://edit-9und.onrender.com/${id}/reject`, {
         method: 'PUT',
       });
 
